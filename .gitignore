@@ -1,0 +1,17 @@
+# Compiled binaries and object files
+*.o
+*.obj
+bin/
+build/
+hopnet
+hopnet.exe
+
+# IDE and Editor settings
+.vscode/
+.idea/
+*.swp
+*~
+
+# OS artifacts
+.DS_Store
+Thumbs.db
