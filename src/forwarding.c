@@ -19,28 +19,28 @@ bool process_packet(const Graph *g, uint8_t current_node_id, Packet pkt) {
     if (pkt.header.ttl <= 1) {
         printf("  ❌ [DROP] Packet #%d dropped at Node %d due to TTL Expiration (TTL=0)!\n\n",
                pkt.header.msg_id, current_node_id);
-        return false; // Packet dies here!
+        return false;
     }
 
     pkt.header.ttl--; // Decrement hop counter
 
-    // 3. Find neighboring node to forward packet (Basic Single-Path Forwarding for Phase 2)
-    for (int next_hop = 1; next_hop < g->num_nodes; next_hop++) {
-        if (next_hop != current_node_id && graph_has_edge(g, current_node_id, next_hop)) {
-            // Avoid sending packet directly back to sender if another path exists
-            if (next_hop == pkt.header.src_id && g->num_nodes > 2) {
-                continue;
-            }
+    // 3. Smart Forwarding: Prioritize destination if directly connected
+    if (graph_has_edge(g, current_node_id, pkt.header.dest_id)) {
+        printf("  ➡️  [DIRECT FORWARD] Node %d forwarding packet #%d directly to Destination Node %d (New TTL: %d)\n",
+               current_node_id, pkt.header.msg_id, pkt.header.dest_id, pkt.header.ttl);
+        return process_packet(g, pkt.header.dest_id, pkt);
+    }
 
+    // 4. Otherwise, forward to next valid neighbor along path (moving forward away from src)
+    for (int next_hop = current_node_id + 1; next_hop < g->num_nodes; next_hop++) {
+        if (graph_has_edge(g, current_node_id, next_hop)) {
             printf("  ➡️  [FORWARD] Node %d forwarding packet #%d to next-hop Node %d (New TTL: %d)\n",
                    current_node_id, pkt.header.msg_id, next_hop, pkt.header.ttl);
-
-            // Recursive multi-hop relay simulation
             return process_packet(g, next_hop, pkt);
         }
     }
 
-    printf("  ⚠️ [DEAD-END] Node %d has no available neighbors to forward packet #%d!\n\n",
+    printf("  ⚠️ [DEAD-END] Node %d has no available forward neighbors for packet #%d!\n\n",
            current_node_id, pkt.header.msg_id);
     return false;
 }
