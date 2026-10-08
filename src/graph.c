@@ -1,6 +1,7 @@
 #include "graph.h"
 #include <stdio.h>
 #include <string.h>
+#include "buffer.h"
 #include "cache.h"
 
 void graph_init(Graph *g) {
@@ -22,6 +23,8 @@ int graph_add_node(Graph *g, uint8_t id, int x, int y) {
     g->nodes[id].packets_received = 0;
 
     cache_init(&(g->nodes[id].cache)); // Initialize node's deduplication cache!
+    buffer_init(&(g->nodes[id].buffer)); // Initialize node's Store-and-Forward ring buffer!
+
 
     if (id >= g->num_nodes) {
         g->num_nodes = id + 1;

@@ -171,67 +171,128 @@
 
 
 
+// #include <stdio.h>
+// #include "packet.h"
+// #include "graph.h"
+// #include "routing.h"
+
+// int main(void) {
+//     printf("===========================================\n");
+//     printf("   HopNet Phase 3: Routing Comparison     \n");
+//     printf("===========================================\n\n");
+
+//     // 1. Build a 6-Node Mesh Network Graph
+//     Graph g;
+//     graph_init(&g);
+
+//     graph_add_node(&g, 1, 0, 0);   // Alice
+//     graph_add_node(&g, 2, 40, 20);  // Bob
+//     graph_add_node(&g, 3, 40, -20); // Charlie
+//     graph_add_node(&g, 4, 80, 20);  // Eve
+//     graph_add_node(&g, 5, 80, -20); // Frank
+//     graph_add_node(&g, 6, 120, 0);  // David
+
+//     // Top branch links
+//     graph_add_edge(&g, 1, 2);
+//     graph_add_edge(&g, 2, 4);
+//     graph_add_edge(&g, 4, 6);
+
+//     // Bottom branch links
+//     graph_add_edge(&g, 1, 3);
+//     graph_add_edge(&g, 3, 5);
+//     graph_add_edge(&g, 5, 6);
+
+//     graph_print(&g);
+
+//     // -------------------------------------------------------------
+//     // TEST 1: Baseline Epidemic Flooding
+//     // -------------------------------------------------------------
+//     printf("--- TEST 1: Baseline Epidemic Flooding (Packet #3001) ---\n");
+//     uint32_t flood_broadcasts = 0;
+//     Packet pkt1 = create_packet(1, 6, 3001, PACKET_TYPE_DATA, 5, "Hello David via Flooding!");
+//     route_flooding(&g, 1, pkt1, &flood_broadcasts);
+//     printf("📊 Flooding Result: Total Network Broadcasts = %u\n\n", flood_broadcasts);
+
+//     // Re-initialize caches for next test
+//     for (int i = 1; i < g.num_nodes; i++) {
+//         cache_init(&(g.nodes[i].cache));
+//     }
+
+//     // -------------------------------------------------------------
+//     // TEST 2: Smart Shortest Path Routing (BFS)
+//     // -------------------------------------------------------------
+//     printf("--- TEST 2: Smart Shortest-Path Routing (Packet #3002) ---\n");
+//     uint32_t smart_hops = 0;
+//     Packet pkt2 = create_packet(1, 6, 3002, PACKET_TYPE_DATA, 5, "Hello David via Smart BFS!");
+//     route_shortest_path(&g, 1, pkt2, &smart_hops);
+//     printf("📊 Smart BFS Result: Total Path Hops = %u\n\n", smart_hops);
+
+//     printf("===========================================\n");
+//     printf("🎉 BENCHMARK COMPARISON:\n");
+//     printf("   Flooding Broadcasts:     %u shouts\n", flood_broadcasts);
+//     printf("   Smart BFS Relay Hops:    %u targeted relays\n", smart_hops);
+//     printf("===========================================\n");
+
+//     return 0;
+// }
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 #include <stdio.h>
 #include "packet.h"
 #include "graph.h"
 #include "routing.h"
+#include "buffer.h"
 
 int main(void) {
     printf("===========================================\n");
-    printf("   HopNet Phase 3: Routing Comparison     \n");
+    printf("  HopNet Phase 4: Store-and-Forward Buffer \n");
     printf("===========================================\n\n");
 
-    // 1. Build a 6-Node Mesh Network Graph
     Graph g;
     graph_init(&g);
-
     graph_add_node(&g, 1, 0, 0);   // Alice
-    graph_add_node(&g, 2, 40, 20);  // Bob
-    graph_add_node(&g, 3, 40, -20); // Charlie
-    graph_add_node(&g, 4, 80, 20);  // Eve
-    graph_add_node(&g, 5, 80, -20); // Frank
-    graph_add_node(&g, 6, 120, 0);  // David
+    graph_add_node(&g, 2, 40, 0);  // Bob
+    graph_add_node(&g, 3, 80, 0);  // Charlie
 
-    // Top branch links
     graph_add_edge(&g, 1, 2);
-    graph_add_edge(&g, 2, 4);
-    graph_add_edge(&g, 4, 6);
-
-    // Bottom branch links
-    graph_add_edge(&g, 1, 3);
-    graph_add_edge(&g, 3, 5);
-    graph_add_edge(&g, 5, 6);
+    graph_add_edge(&g, 2, 3);
 
     graph_print(&g);
 
     // -------------------------------------------------------------
-    // TEST 1: Baseline Epidemic Flooding
+    // TEST 1: Link Failure & Store-and-Forward Queuing
     // -------------------------------------------------------------
-    printf("--- TEST 1: Baseline Epidemic Flooding (Packet #3001) ---\n");
-    uint32_t flood_broadcasts = 0;
-    Packet pkt1 = create_packet(1, 6, 3001, PACKET_TYPE_DATA, 5, "Hello David via Flooding!");
-    route_flooding(&g, 1, pkt1, &flood_broadcasts);
-    printf("📊 Flooding Result: Total Network Broadcasts = %u\n\n", flood_broadcasts);
+    printf("[SIMULATION] Node 2 (Bob) temporarily goes OFFLINE!\n");
+    g.nodes[2].is_active = false; // Bob is offline!
 
-    // Re-initialize caches for next test
-    for (int i = 1; i < g.num_nodes; i++) {
-        cache_init(&(g.nodes[i].cache));
+    Packet pkt1 = create_packet(1, 3, 4001, PACKET_TYPE_DATA, 5, "Store-and-Forward Delayed Msg!");
+
+    int next_hop = routing_get_next_hop(&g, 1, 3);
+    if (next_hop == -1) {
+        printf("[INFO] [NODE 1] Node 2 is unreachable! Storing Packet #4001 in Circular Ring Buffer...\n");
+        bool queued = buffer_enqueue(&(g.nodes[1].buffer), pkt1);
+        if (queued) {
+            printf("[QUEUE] [NODE 1] Packet #4001 successfully enqueued. (Buffer Queue Count: %d)\n\n",
+                   g.nodes[1].buffer.count);
+        }
     }
 
     // -------------------------------------------------------------
-    // TEST 2: Smart Shortest Path Routing (BFS)
+    // TEST 2: Node Reconnection & Dequeue Delivery
     // -------------------------------------------------------------
-    printf("--- TEST 2: Smart Shortest-Path Routing (Packet #3002) ---\n");
-    uint32_t smart_hops = 0;
-    Packet pkt2 = create_packet(1, 6, 3002, PACKET_TYPE_DATA, 5, "Hello David via Smart BFS!");
-    route_shortest_path(&g, 1, pkt2, &smart_hops);
-    printf("📊 Smart BFS Result: Total Path Hops = %u\n\n", smart_hops);
+    printf("[SIMULATION] Node 2 (Bob) comes BACK ONLINE!\n");
+    g.nodes[2].is_active = true; // Bob is back online!
 
-    printf("===========================================\n");
-    printf("🎉 BENCHMARK COMPARISON:\n");
-    printf("   Flooding Broadcasts:     %u shouts\n", flood_broadcasts);
-    printf("   Smart BFS Relay Hops:    %u targeted relays\n", smart_hops);
-    printf("===========================================\n");
+    if (!buffer_is_empty(&(g.nodes[1].buffer))) {
+        Packet buffered_pkt;
+        buffer_dequeue(&(g.nodes[1].buffer), &buffered_pkt);
+        printf("[DEQUEUE] [NODE 1] Popped Packet #%d from Store-and-Forward Ring Buffer.\n", buffered_pkt.header.msg_id);
+        
+        uint32_t hops = 0;
+        route_shortest_path(&g, 1, buffered_pkt, &hops);
+    }
 
     return 0;
 }
