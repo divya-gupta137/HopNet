@@ -85,6 +85,50 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
+// #include <stdio.h>
+// #include "packet.h"
+// #include "graph.h"
+// #include "forwarding.h"
+
+// int main(void) {
+//     printf("===========================================\n");
+//     printf("   HopNet Phase 2: Multi-Hop Forwarding    \n");
+//     printf("===========================================\n\n");
+
+//     // 1. Setup Festival Topology: 1 (Alice) -> 2 (Bob) -> 3 (Charlie) -> 4 (David)
+//     Graph g;
+//     graph_init(&g);
+//     graph_add_node(&g, 1, 0, 0);   // Alice
+//     graph_add_node(&g, 2, 40, 0);  // Bob
+//     graph_add_node(&g, 3, 80, 0);  // Charlie
+//     graph_add_node(&g, 4, 120, 0); // David
+
+//     graph_add_edge(&g, 1, 2);
+//     graph_add_edge(&g, 2, 3);
+//     graph_add_edge(&g, 3, 4);
+
+//     graph_print(&g);
+
+//     // TEST 1: Successful Multi-Hop Delivery (Alice -> Bob -> Charlie -> David) with TTL = 5
+//     printf("--- TEST 1: Sending Packet from Alice (1) to David (4) [TTL = 5] ---\n");
+//     Packet pkt1 = create_packet(1, 4, 1001, PACKET_TYPE_DATA, 5, "Meet me at the food court!");
+//     process_packet(&g, 1, pkt1);
+
+//     // TEST 2: TTL Expiration Drop Test (Alice -> Bob -> Charlie, but TTL = 2, so it dies before David!)
+//     printf("--- TEST 2: Low TTL Loop-Prevention Drop Test [TTL = 2] ---\n");
+//     Packet pkt2 = create_packet(1, 4, 1002, PACKET_TYPE_DATA, 2, "This message will expire early!");
+//     process_packet(&g, 1, pkt2);
+
+//     return 0;
+// }
+
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+
 #include <stdio.h>
 #include "packet.h"
 #include "graph.h"
@@ -92,10 +136,9 @@
 
 int main(void) {
     printf("===========================================\n");
-    printf("   HopNet Phase 2: Multi-Hop Forwarding    \n");
+    printf("  HopNet Phase 2: Duplicate Suppression    \n");
     printf("===========================================\n\n");
 
-    // 1. Setup Festival Topology: 1 (Alice) -> 2 (Bob) -> 3 (Charlie) -> 4 (David)
     Graph g;
     graph_init(&g);
     graph_add_node(&g, 1, 0, 0);   // Alice
@@ -109,15 +152,14 @@ int main(void) {
 
     graph_print(&g);
 
-    // TEST 1: Successful Multi-Hop Delivery (Alice -> Bob -> Charlie -> David) with TTL = 5
-    printf("--- TEST 1: Sending Packet from Alice (1) to David (4) [TTL = 5] ---\n");
-    Packet pkt1 = create_packet(1, 4, 1001, PACKET_TYPE_DATA, 5, "Meet me at the food court!");
+    // TEST 1: First send of Packet #2001 (Should succeed: Node 1 -> 2 -> 3 -> 4)
+    printf("--- TEST 1: Sending Packet #2001 (First Time) ---\n");
+    Packet pkt1 = create_packet(1, 4, 2001, PACKET_TYPE_DATA, 5, "Hello David!");
     process_packet(&g, 1, pkt1);
 
-    // TEST 2: TTL Expiration Drop Test (Alice -> Bob -> Charlie, but TTL = 2, so it dies before David!)
-    printf("--- TEST 2: Low TTL Loop-Prevention Drop Test [TTL = 2] ---\n");
-    Packet pkt2 = create_packet(1, 4, 1002, PACKET_TYPE_DATA, 2, "This message will expire early!");
-    process_packet(&g, 1, pkt2);
+    // TEST 2: Re-sending Packet #2001 to Node 1 (Should trigger DUPLICATE DROP!)
+    printf("--- TEST 2: Re-sending Packet #2001 to Node 1 (Duplicate Test) ---\n");
+    process_packet(&g, 1, pkt1);
 
     return 0;
 }
