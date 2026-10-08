@@ -129,37 +129,109 @@
 
 
 
+// #include <stdio.h>
+// #include "packet.h"
+// #include "graph.h"
+// #include "forwarding.h"
+
+// int main(void) {
+//     printf("===========================================\n");
+//     printf("  HopNet Phase 2: Duplicate Suppression    \n");
+//     printf("===========================================\n\n");
+
+//     Graph g;
+//     graph_init(&g);
+//     graph_add_node(&g, 1, 0, 0);   // Alice
+//     graph_add_node(&g, 2, 40, 0);  // Bob
+//     graph_add_node(&g, 3, 80, 0);  // Charlie
+//     graph_add_node(&g, 4, 120, 0); // David
+
+//     graph_add_edge(&g, 1, 2);
+//     graph_add_edge(&g, 2, 3);
+//     graph_add_edge(&g, 3, 4);
+
+//     graph_print(&g);
+
+//     // TEST 1: First send of Packet #2001 (Should succeed: Node 1 -> 2 -> 3 -> 4)
+//     printf("--- TEST 1: Sending Packet #2001 (First Time) ---\n");
+//     Packet pkt1 = create_packet(1, 4, 2001, PACKET_TYPE_DATA, 5, "Hello David!");
+//     process_packet(&g, 1, pkt1);
+
+//     // TEST 2: Re-sending Packet #2001 to Node 1 (Should trigger DUPLICATE DROP!)
+//     printf("--- TEST 2: Re-sending Packet #2001 to Node 1 (Duplicate Test) ---\n");
+//     process_packet(&g, 1, pkt1);
+
+//     return 0;
+// }
+
+
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
 #include <stdio.h>
 #include "packet.h"
 #include "graph.h"
-#include "forwarding.h"
+#include "routing.h"
 
 int main(void) {
     printf("===========================================\n");
-    printf("  HopNet Phase 2: Duplicate Suppression    \n");
+    printf("   HopNet Phase 3: Routing Comparison     \n");
     printf("===========================================\n\n");
 
+    // 1. Build a 6-Node Mesh Network Graph
     Graph g;
     graph_init(&g);
-    graph_add_node(&g, 1, 0, 0);   // Alice
-    graph_add_node(&g, 2, 40, 0);  // Bob
-    graph_add_node(&g, 3, 80, 0);  // Charlie
-    graph_add_node(&g, 4, 120, 0); // David
 
+    graph_add_node(&g, 1, 0, 0);   // Alice
+    graph_add_node(&g, 2, 40, 20);  // Bob
+    graph_add_node(&g, 3, 40, -20); // Charlie
+    graph_add_node(&g, 4, 80, 20);  // Eve
+    graph_add_node(&g, 5, 80, -20); // Frank
+    graph_add_node(&g, 6, 120, 0);  // David
+
+    // Top branch links
     graph_add_edge(&g, 1, 2);
-    graph_add_edge(&g, 2, 3);
-    graph_add_edge(&g, 3, 4);
+    graph_add_edge(&g, 2, 4);
+    graph_add_edge(&g, 4, 6);
+
+    // Bottom branch links
+    graph_add_edge(&g, 1, 3);
+    graph_add_edge(&g, 3, 5);
+    graph_add_edge(&g, 5, 6);
 
     graph_print(&g);
 
-    // TEST 1: First send of Packet #2001 (Should succeed: Node 1 -> 2 -> 3 -> 4)
-    printf("--- TEST 1: Sending Packet #2001 (First Time) ---\n");
-    Packet pkt1 = create_packet(1, 4, 2001, PACKET_TYPE_DATA, 5, "Hello David!");
-    process_packet(&g, 1, pkt1);
+    // -------------------------------------------------------------
+    // TEST 1: Baseline Epidemic Flooding
+    // -------------------------------------------------------------
+    printf("--- TEST 1: Baseline Epidemic Flooding (Packet #3001) ---\n");
+    uint32_t flood_broadcasts = 0;
+    Packet pkt1 = create_packet(1, 6, 3001, PACKET_TYPE_DATA, 5, "Hello David via Flooding!");
+    route_flooding(&g, 1, pkt1, &flood_broadcasts);
+    printf("📊 Flooding Result: Total Network Broadcasts = %u\n\n", flood_broadcasts);
 
-    // TEST 2: Re-sending Packet #2001 to Node 1 (Should trigger DUPLICATE DROP!)
-    printf("--- TEST 2: Re-sending Packet #2001 to Node 1 (Duplicate Test) ---\n");
-    process_packet(&g, 1, pkt1);
+    // Re-initialize caches for next test
+    for (int i = 1; i < g.num_nodes; i++) {
+        cache_init(&(g.nodes[i].cache));
+    }
+
+    // -------------------------------------------------------------
+    // TEST 2: Smart Shortest Path Routing (BFS)
+    // -------------------------------------------------------------
+    printf("--- TEST 2: Smart Shortest-Path Routing (Packet #3002) ---\n");
+    uint32_t smart_hops = 0;
+    Packet pkt2 = create_packet(1, 6, 3002, PACKET_TYPE_DATA, 5, "Hello David via Smart BFS!");
+    route_shortest_path(&g, 1, pkt2, &smart_hops);
+    printf("📊 Smart BFS Result: Total Path Hops = %u\n\n", smart_hops);
+
+    printf("===========================================\n");
+    printf("🎉 BENCHMARK COMPARISON:\n");
+    printf("   Flooding Broadcasts:     %u shouts\n", flood_broadcasts);
+    printf("   Smart BFS Relay Hops:    %u targeted relays\n", smart_hops);
+    printf("===========================================\n");
 
     return 0;
 }
