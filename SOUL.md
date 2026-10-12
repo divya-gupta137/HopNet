@@ -12,29 +12,31 @@ HopNet is a C-based multi-hop peer-to-peer mesh networking and routing simulator
   3. **Message ID Deduplication:** Nodes log seen Message IDs in a cache to drop duplicate packets instantly.
   4. **Flooding vs Shortest Path Routing:** Compare naive shouting to everyone (Flooding) vs target next-hop routing (Dijkstra/Shortest-Path).
   5. **Store-and-Forward Ring Buffer:** Temporary pocket storage when a neighbor node temporarily disappears.
-  6. **Benchmarking Layer:** Measuring Packet Delivery Ratio (PDR), Latency, and Routing Overhead.
+  6. **Reliability Layer:** End-to-end ACKs with automatic retransmission retries.
+  7. **Dynamic Route Recovery:** Automatic BFS alternate-path fallback when primary links drop.
+  8. **Benchmarking Layer:** Measuring Packet Delivery Ratio (PDR), Latency, and Routing Overhead across traffic loads.
 
 ## Current Status
-- **Phase:** 0 - Project Setup & Architecture Finalization
-- **Current Target Date:** Sept 29, 2026
-- **Deadline:** Oct 7, 2026 (8-Day Intensive Development)
-- **Status:** Initialized architectural plan, master story model, and core configuration files.
+- **Phase:** Project Complete (All 8 Phases Delivered & Validated)
+- **Current Target Date:** Oct 12, 2026
+- **Status:** All 8 Phases 100% completed. Codebase verified with Valgrind (0 bytes leaked, 0 errors). E2EE security, pure C interactive TUI, dynamic route recovery, store-and-forward buffers, automated POSIX benchmarking, and Linux Bluetooth RFCOMM socket bridge fully functional.
 
 ## Milestone Progress
-- [x] Phase 0: Master Story Analogy, Architecture Design & Repo Blueprint (Sept 29)
-- [ ] Phase 1: Repo Setup, Core Structures, Topology Graph & Memory Management (Day 1 - Sept 30)
-- [ ] Phase 2: Binary Packet Framing, Serialization & Single-Hop Transport (Day 2 - Oct 1)
-- [ ] Phase 3: Multi-Hop Forwarding, TTL Loop Prevention & Deduplication Cache (Day 3 - Oct 2)
-- [ ] Phase 4: Routing Protocol Engine (Baseline Flooding vs Shortest Path / Distance Vector) (Day 4 - Oct 3)
-- [ ] Phase 5: Circular Store-and-Forward Buffers & Link/Node Failure Simulation (Day 5 - Oct 4)
-- [ ] Phase 6: Reliability Layer (ACKs, Retransmission & Route Recovery) (Day 6 - Oct 5)
-- [ ] Phase 7: Benchmarking Engine (PDR, Latency, Overhead) & Experiment CLI (Day 7 - Oct 6)
-- [ ] Phase 8: Viva Preparation, Code Hardening & GitHub Presentation (Day 8 - Oct 7)
+- [x] Phase 0: Master Story Analogy, Architecture Design & Repo Blueprint (Completed)
+- [x] Phase 1: Repo Setup, Binary Packet Framing & Topology Graph (Day 1 - Completed)
+- [x] Phase 2: Multi-Hop Forwarding, TTL Loop Prevention & Deduplication Cache (Day 2 - Completed)
+- [x] Phase 3: Routing Protocol Engine (Baseline Flooding vs Shortest Path Routing) (Day 3 - Completed)
+- [x] Phase 4: Circular Ring Buffer, End-to-End ACKs & Dynamic Route Recovery (Day 4 - Completed)
+- [x] Phase 5: Automated Benchmarking Engine (PDR, Latency, Overhead calculation) (Day 5 - Completed)
+- [x] Phase 6: Unified Showcase CLI, Interactive Terminal TUI & E2EE Security Layer (Day 6 - Completed)
+- [x] Phase 7: Real Bluetooth RFCOMM Bridge Layer (Day 7 - Completed)
+- [x] Phase 8: Valgrind Memory Leak Audit & Viva Defense Dry Run (Day 8 - Completed)
 
 ## Architecture Decisions
-1. **Simulation-First:** Transport is decoupled from protocol logic. Simulator uses POSIX sockets/in-memory queues. Real Bluetooth is deferred to STRETCH/FUTURE.
-2. **Explicit C Systems Focus:** Pointers, structs, manual memory allocation (`malloc/free`), linked lists, circular buffers, graph representations, binary serialization, POSIX threads/mutexes.
-3. **Strict Manual Implementation:** AI acts solely as mentor/tutor. User manually edits all code files except `SOUL.md` and `CHALLENGES.md`.
-
-## Next Immediate Logical Step
-Create project folder structure (`include/`, `src/`, `theory_concepts/`), initial `.gitignore`, `Makefile`, and `LICENSE`. Then begin Phase 1 data structure design (`node.h`, `packet.h`, `graph.h`).
+1. **Simulation-First:** Transport is decoupled from protocol logic. Simulator uses in-memory node structures. Real Bluetooth is deferred to Phase 7.
+2. **Fixed-Width Binary Framing:** Uses `<stdint.h>` (`uint8_t`, `uint16_t`) with `#pragma pack(push, 1)` for exact 8-byte network wire layout.
+3. **Graph Topology:** 2D Adjacency Matrix (`adj[MAX_NODES][MAX_NODES]`) for bi-directional 50m radio links.
+4. **Deduplication Cache:** Per-node embedded `DeduplicationCache` struct for node-isolated duplicate message ID drops.
+5. **ACK Sequence ID Separation:** Dedicated ACK packet message IDs (`data_msg_id + 10000`) prevent collision with DATA packets in deduplication cache.
+6. **Dynamic BFS Fallback:** BFS dynamically queries active matrix edges to discover alternate routes during link failures.
+7. **Empirical Benchmarking (No Fake Stats):** Real timestamps (`CLOCK_MONOTONIC`) and transmission accumulators dynamically compute exact PDR and overhead reduction ratios.

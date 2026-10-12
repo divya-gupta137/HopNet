@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "cache.h"
+#include "buffer.h"
 
 #define MAX_NODES 32
 
@@ -17,6 +18,8 @@ typedef struct {
     uint32_t packets_relayed; // Statistics: Forwarded
     uint32_t packets_received;// Statistics: Received
     DeduplicationCache cache; // <-- Each node's deduplication cache!
+    PacketBuffer buffer;      // Store-and-Forward circular ring buffer queue!
+
 } Node;
 
 #endif // NODE_H
